@@ -1,0 +1,84 @@
+<%- include('partials/header', { showBack: false }) %>
+
+<main class="main">
+
+  <!-- Summary Card -->
+  <section class="summary-card">
+    <div class="summary-card__top">
+      <div>
+        <p class="summary-card__label">Total del mes</p>
+        <h2 class="summary-card__amount">$<%= totalMes.toLocaleString('es-MX', { minimumFractionDigits: 2 }) %></h2>
+      </div>
+      <svg width="28" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    </div>
+    <div class="summary-card__badge">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><polyline points="18 15 12 9 6 15" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+      <span><%= Math.abs(porcentajeCambio) %>% vs mes anterior</span>
+    </div>
+    <div class="summary-card__blur"></div>
+  </section>
+
+  <!-- Stats Grid -->
+  <section class="stats-grid">
+    <div class="stat-card">
+      <svg width="18" height="20" viewBox="0 0 24 24" fill="none" stroke="#0456C5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span class="stat-card__label">Hoy</span>
+      <span class="stat-card__value" style="color:#0456C5">$<%= totalHoy.toLocaleString('es-MX', { minimumFractionDigits: 0 }) %></span>
+    </div>
+    <div class="stat-card">
+      <svg width="18" height="20" viewBox="0 0 24 24" fill="none" stroke="#006D3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span class="stat-card__label">Gastos</span>
+      <span class="stat-card__value" style="color:#006D3D"><%= countMes %></span>
+    </div>
+    <div class="stat-card">
+      <svg width="15" height="20" viewBox="0 0 24 24" fill="none" stroke="#A13835" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+      <span class="stat-card__label">Top</span>
+      <span class="stat-card__value" style="color:#A13835"><%= categoriaTop %></span>
+    </div>
+  </section>
+
+  <!-- Scanner Button -->
+  <a href="/escanear" class="scanner-btn">
+    <div class="scanner-btn__icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0456C5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+    </div>
+    <div>
+      <p class="scanner-btn__title">Escanear ticket</p>
+      <p class="scanner-btn__sub">Añade gastos automáticamente</p>
+    </div>
+    <svg width="8" height="12" viewBox="0 0 8 12" fill="none" stroke="#737785" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 5-6 5"/></svg>
+  </a>
+
+  <!-- Recent Expenses -->
+  <section class="section">
+    <div class="section__header">
+      <h3 class="section__title">Gastos recientes</h3>
+      <a href="/gastos" class="section__link">Ver más</a>
+    </div>
+    <div class="expense-list">
+      <% if (gastos.length === 0) { %>
+        <div class="empty-state">
+          <p>Aún no hay gastos registrados</p>
+          <a href="/gastos/nuevo" class="link-blue">Agregar el primero</a>
+        </div>
+      <% } else { %>
+        <% gastos.forEach(gasto => { %>
+          <%- include('partials/expense-item', { gasto }) %>
+        <% }) %>
+      <% } %>
+    </div>
+  </section>
+
+  <!-- Motivational Banner -->
+  <div class="banner">
+    <p class="banner__text">Tu camino hacia la libertad financiera empieza con un pequeño paso.</p>
+  </div>
+
+</main>
+
+<!-- FAB -->
+<a href="/gastos/nuevo" class="fab">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</a>
+
+<%- include('partials/bottomnav') %>

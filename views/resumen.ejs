@@ -1,0 +1,102 @@
+<%- include('partials/header', { showBack: false }) %>
+
+<main class="main">
+
+  <!-- Screen title -->
+  <div class="page-header">
+    <h1 class="page-header__title">Resumen</h1>
+    <p class="page-header__sub">Análisis de tus finanzas este mes</p>
+  </div>
+
+  <!-- Total Card -->
+  <div class="summary-card summary-card--resumen">
+    <div class="summary-card__blur summary-card__blur--lg"></div>
+    <p class="summary-card__eyebrow">TOTAL ACUMULADO</p>
+    <h2 class="summary-card__amount summary-card__amount--lg">$<%= totalMes.toLocaleString('es-MX', { minimumFractionDigits: 2 }) %></h2>
+    <div class="summary-card__badge summary-card__badge--glass">
+      <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 7l5-6 5 6" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+      <%= Math.abs(porcentajeCambio) %>% más que el mes pasado
+    </div>
+  </div>
+
+  <!-- Donut Chart -->
+  <div class="chart-card">
+    <div class="donut-chart">
+      <% const colors = ['#0456C5','#006D3D','#A13835','#737785','#D97706'] %>
+      <% let offset = 0 %>
+      <svg viewBox="0 0 200 200" width="192" height="192">
+        <% if (categorias.length === 0) { %>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#E6E8EA" stroke-width="24" />
+        <% } else { %>
+          <% categorias.forEach((cat, i) => { %>
+            <% const pct = parseFloat(cat.porcentaje) / 100 %>
+            <% const circumference = 2 * Math.PI * 80 %>
+            <% const dash = pct * circumference %>
+            <% const gap = circumference - dash %>
+            <circle cx="100" cy="100" r="80" fill="none"
+              stroke="<%= colors[i % colors.length] %>"
+              stroke-width="24"
+              stroke-dasharray="<%= dash %> <%= gap %>"
+              stroke-dashoffset="<%= -offset * circumference %>"
+              transform="rotate(-90 100 100)"
+            />
+            <% offset += pct %>
+          <% }) %>
+        <% } %>
+      </svg>
+      <div class="donut-center">
+        <span class="donut-center__label">Gastos</span>
+        <span class="donut-center__pct">100%</span>
+      </div>
+    </div>
+
+    <!-- Top category highlight -->
+    <% if (categoriaTop && categoriaTop.nombre) { %>
+    <div class="highlight-card">
+      <div class="highlight-card__icon">
+        <svg width="15" height="20" viewBox="0 0 24 24" fill="none" stroke="#007442" stroke-width="2" stroke-linecap="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+      </div>
+      <p class="highlight-card__sub">Categoría con más gastos</p>
+      <p class="highlight-card__cat"><%= categoriaTop.nombre %> (<%= categoriaTop.porcentaje %>%)</p>
+      <div class="progress-bar">
+        <div class="progress-bar__fill" style="width:<%= categoriaTop.porcentaje %>%"></div>
+      </div>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- Category Breakdown -->
+  <section class="section">
+    <h4 class="section__eyebrow">DESGLOSE POR CATEGORÍA</h4>
+    <div class="expense-list">
+      <% const catColors = { Comida:'#0456C5', Servicios:'#A13835', Transporte:'#737785', Salud:'#006D3D', Entretenimiento:'#D97706', Otros:'#006D3D' } %>
+      <% categorias.forEach((cat, i) => { %>
+        <div class="expense-item expense-item--cat">
+          <div class="expense-item__icon" style="background:rgba(<%= i===0?'4,86,197':i===1?'161,56,53':i===2?'115,119,133':'0,109,61' %>,0.1)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="<%= colors[i % colors.length] %>" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <div class="expense-item__info">
+            <span class="expense-item__name"><%= cat.nombre %></span>
+            <span class="expense-item__date"><%= cat.porcentaje %>% del total</span>
+          </div>
+          <span class="expense-item__amount" style="color:#191C1E">$<%= parseFloat(cat.total).toLocaleString('es-MX', { minimumFractionDigits: 2 }) %></span>
+        </div>
+      <% }) %>
+      <% if (categorias.length === 0) { %>
+        <p class="empty-state">Sin gastos este mes</p>
+      <% } %>
+    </div>
+  </section>
+
+  <!-- Encouragement -->
+  <div class="encourage-card">
+    <div>
+      <p class="encourage-card__title">¡Vas por buen camino!</p>
+      <p class="encourage-card__text">Has ahorrado un 12% comparado con la semana anterior. Mantén el enfoque en tu categoría de <%= categoriaTop?.nombre || 'Comida' %>.</p>
+    </div>
+    <div class="encourage-card__icon">💰</div>
+  </div>
+
+</main>
+
+<%- include('partials/bottomnav') %>

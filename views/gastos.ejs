@@ -1,0 +1,80 @@
+<%- include('partials/header', { showBack: false }) %>
+
+<main class="main">
+  <!-- Header Section -->
+  <div class="page-header">
+    <h1 class="page-header__title">Mis gastos</h1>
+    <div class="search-wrapper">
+      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C3C6D6" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <form method="GET" action="/gastos" style="flex:1">
+        <input type="text" name="busqueda" class="search-input" placeholder="¿En qué gastaste hoy?" value="<%= busqueda %>" />
+      </form>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-scroll">
+    <% const cats = ['Todos','Comida','Transporte','Servicios','Salud','Entretenimiento','Otros'] %>
+    <a href="/gastos?categoria=Todos" class="filter-btn filter-date">
+      <svg width="13" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Fecha
+    </a>
+    <div class="filter-divider"></div>
+    <% cats.forEach(cat => { %>
+      <a href="/gastos?categoria=<%= cat %>" class="filter-btn <%= categoriaActiva === cat ? 'filter-btn--active' : '' %>"><%= cat %></a>
+    <% }) %>
+  </div>
+
+  <!-- Expense List -->
+  <div class="expense-list expense-list--full">
+    <% if (gastos.length === 0) { %>
+      <div class="empty-state empty-state--center">
+        <div class="empty-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C3C6D6" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <p>¿No encuentras lo que buscas?</p>
+        <a href="/gastos?categoria=Todos" class="link-blue">Revisar otros meses</a>
+      </div>
+    <% } else { %>
+      <% gastos.forEach(gasto => { %>
+        <div class="expense-item expense-item--full">
+          <div class="expense-item__icon expense-item__icon--<%= (gasto.categoria || 'otros').toLowerCase().replace(/\s/g,'-') %>">
+            <% if (gasto.categoria === 'Comida') { %>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+            <% } else if (gasto.categoria === 'Transporte') { %>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            <% } else if (gasto.categoria === 'Salud') { %>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <% } else if (gasto.categoria === 'Servicios') { %>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg>
+            <% } else { %>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <% } %>
+          </div>
+          <div class="expense-item__info">
+            <div class="expense-item__row">
+              <span class="expense-item__name"><%= gasto.concepto %></span>
+              <span class="expense-item__amount">$<%= parseFloat(gasto.monto).toLocaleString('es-MX', { minimumFractionDigits: 2 }) %></span>
+            </div>
+            <div class="expense-item__row">
+              <span class="category-badge category-badge--<%= (gasto.categoria || 'otros').toLowerCase().replace(/\s/g,'-') %>"><%= gasto.categoria || 'Otros' %></span>
+              <span class="expense-item__date"><%= new Date(gasto.fecha + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' }) %></span>
+            </div>
+          </div>
+          <form action="/gastos/<%= gasto.id %>/eliminar" method="POST" class="delete-form">
+            <button type="submit" class="btn-delete" onclick="return confirm('¿Eliminar este gasto?')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>
+          </form>
+        </div>
+      <% }) %>
+    <% } %>
+  </div>
+</main>
+
+<!-- FAB -->
+<a href="/gastos/nuevo" class="fab">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</a>
+
+<%- include('partials/bottomnav') %>
