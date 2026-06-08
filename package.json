@@ -5,7 +5,9 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "setup": "node setup.js",
+    "build": "node scripts/generate-config.js"
   },
   "dependencies": {
     "express": "^4.18.2",

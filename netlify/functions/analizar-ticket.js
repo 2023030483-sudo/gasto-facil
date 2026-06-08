@@ -1,9 +1,4 @@
-const express = require('express');
-const router = express.Router();
-const multer = require('multer');
-
-const storage = multer.memoryStorage();
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+const fetch = global.fetch || require('node-fetch');
 
 function normalizeAmount(rawValue) {
   if (!rawValue) return null;
@@ -80,28 +75,35 @@ function parseReceiptText(text) {
   };
 }
 
-// Analizar ticket con Gemini o Google Vision OCR
-router.post('/analizar-ticket', upload.single('ticket'), async (req, res) => {
+exports.handler = async function(event) {
   try {
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
     const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+
     if (!GEMINI_API_KEY && !GOOGLE_API_KEY) {
-      return res.status(500).json({ error: 'No se configuró ninguna clave de IA en .env' });
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'No se configuró ninguna clave de IA en Netlify' })
+      };
     }
 
+    const body = JSON.parse(event.body || '{}');
     let imageData = null;
-    if (req.file) {
-      imageData = req.file.buffer.toString('base64');
-    } else if (req.body.imageBase64) {
-      const parts = req.body.imageBase64.split(',');
+
+    if (body.imageBase64) {
+      const parts = body.imageBase64.split(',');
       imageData = parts[1] || parts[0];
     }
 
     if (!imageData) {
-      return res.status(400).json({ error: 'No se recibió imagen' });
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'No se recibió imagen' })
+      };
     }
 
     let parsed;
+
     if (GEMINI_API_KEY) {
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -133,20 +135,29 @@ router.post('/analizar-ticket', upload.single('ticket'), async (req, res) => {
       );
 
       if (!response.ok) {
-        const errData = await response.json();
-        return res.status(500).json({ error: errData.error?.message || 'Error de API Gemini' });
+        const errData = await response.json().catch(() => null);
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: errData?.error?.message || 'Error de API Gemini' })
+        };
       }
 
       const data = await response.json();
       const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!textContent) {
-        return res.status(500).json({ error: 'Respuesta vacía de Gemini' });
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: 'Respuesta vacía de Gemini' })
+        };
       }
 
       try {
         parsed = JSON.parse(textContent.replace(/```json|```/g, '').trim());
       } catch (error) {
-        return res.status(500).json({ error: 'No se pudo parsear la respuesta de Gemini', raw: textContent });
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: 'No se pudo parsear la respuesta de Gemini', raw: textContent })
+        };
       }
 
       parsed.monto = parsed.monto || 0;
@@ -171,8 +182,11 @@ router.post('/analizar-ticket', upload.single('ticket'), async (req, res) => {
       );
 
       if (!response.ok) {
-        const errData = await response.json();
-        return res.status(500).json({ error: errData.error?.message || 'Error de API de Google Vision' });
+        const errData = await response.json().catch(() => null);
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: errData?.error?.message || 'Error de API de Google Vision' })
+        };
       }
 
       const visionData = await response.json();
@@ -180,21 +194,25 @@ router.post('/analizar-ticket', upload.single('ticket'), async (req, res) => {
       const text = annotation?.text || annotation?.description;
 
       if (!text) {
-        return res.status(500).json({ error: 'No se encontró texto en la imagen' });
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: 'No se encontró texto en la imagen' })
+        };
       }
 
       parsed = parseReceiptText(text);
     }
 
-    req.session.datosIA = {
-      ...parsed,
-      metodo_pago: 'Efectivo'
+    parsed.metodo_pago = 'Efectivo';
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ ok: true, datos: parsed })
     };
-
-    res.json({ ok: true, datos: req.session.datosIA });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message })
+    };
   }
-});
-
-module.exports = router;
+};

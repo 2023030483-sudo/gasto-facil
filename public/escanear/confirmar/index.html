@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Confirmar Gasto — Gasto Fácil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0456C5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar__left">
+      <a href="/escanear/" class="btn-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </a>
+      <span class="top-bar__page-title">Confirmar gasto</span>
+    </div>
+    <div class="top-bar__right"></div>
+  </header>
+
+  <main class="main main--confirm">
+    <div class="confirm-hero">
+      <h2 class="confirm-hero__title">Confirmar gasto</h2>
+      <p class="confirm-hero__sub">Revisa los datos detectados antes de guardar</p>
+      <span class="ia-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#007442" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Datos obtenidos por IA
+      </span>
+    </div>
+
+    <div class="ticket-preview">
+      <div class="ticket-preview__gradient"></div>
+      <a href="#" class="ticket-preview__link">Ver ticket original</a>
+    </div>
+
+    <form id="confirmForm" class="form">
+      <div id="confirmMessage" class="error-message" style="display:none; margin-bottom:1rem"></div>
+      <div class="amount-card">
+        <span class="amount-card__label">Monto total</span>
+        <div class="amount-card__row">
+          <span class="amount-card__prefix">$</span>
+          <input type="number" name="monto" step="0.01" class="amount-card__input" required />
+        </div>
+      </div>
+
+      <div class="detail-card">
+        <div class="detail-field">
+          <label class="detail-label">Establecimiento</label>
+          <div class="detail-input-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#424653" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            <input type="text" name="establecimiento" class="detail-input" />
+          </div>
+        </div>
+
+        <div class="detail-field">
+          <label class="detail-label">Concepto</label>
+          <div class="detail-input-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#424653" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            <input type="text" name="concepto" class="detail-input" />
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <div class="detail-field detail-field--half">
+            <label class="detail-label">Fecha</label>
+            <div class="detail-input-wrap">
+              <svg width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="#424653" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <input type="date" name="fecha" class="detail-input" />
+            </div>
+          </div>
+          <div class="detail-field detail-field--half">
+            <label class="detail-label">Categoría sugerida</label>
+            <div class="detail-input-wrap detail-input-wrap--cat">
+              <svg width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="#007442" stroke-width="2" stroke-linecap="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+              <select name="categoria" class="detail-input">
+                <option value="Comida">Comida</option>
+                <option value="Transporte">Transporte</option>
+                <option value="Servicios">Servicios</option>
+                <option value="Salud">Salud</option>
+                <option value="Entretenimiento">Entretenimiento</option>
+                <option value="Otros">Otros</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-field">
+          <label class="detail-label">Método de pago</label>
+          <div class="detail-input-wrap">
+            <svg width="18" height="14" viewBox="0 0 24 24" fill="none" stroke="#424653" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <select name="metodo_pago" class="detail-input">
+              <option value="Efectivo">Efectivo</option>
+              <option value="Tarjeta">Tarjeta</option>
+              <option value="Transferencia">Transferencia</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="detail-field">
+          <label class="detail-label">Notas</label>
+          <div class="detail-input-wrap">
+            <svg width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="#424653" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            <textarea name="notas" class="detail-input detail-textarea"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary">Guardar gasto</button>
+        <a href="/gastos/nuevo/" class="btn btn--outline">Corregir manualmente</a>
+      </div>
+    </form>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/" class="nav-link" data-page="inicio">
+      <svg width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Inicio</span>
+    </a>
+    <a href="/gastos/" class="nav-link" data-page="gastos">
+      <svg width="19" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      <span>Gastos</span>
+    </a>
+    <a href="/escanear/" class="nav-link nav-link--scan" data-page="escanear">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+      <span>Escanear</span>
+    </a>
+    <a href="/resumen/" class="nav-link" data-page="resumen">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>Resumen</span>
+    </a>
+  </nav>
+
+  <script type="module" src="/js/confirmar-gasto.js"></script>
+  <script src="/js/pwa-register.js" defer></script>
+</body>
+</html>
