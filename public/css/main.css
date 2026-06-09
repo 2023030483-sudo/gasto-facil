@@ -46,10 +46,9 @@ body {
   margin: 0 auto;
   min-height: 100%;
   position: relative;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   touch-action: pan-y;
-  overscroll-behavior-y: auto;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -92,7 +91,10 @@ input, select, textarea { font-family: var(--font); }
   display: flex;
   flex-direction: column;
   gap: 24px;
-  min-height: auto;
+  max-height: calc(100vh - var(--top-h) - var(--nav-h));
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .main--form { padding-top: calc(var(--top-h) + 16px); }
 .main--scan { padding: calc(var(--top-h) + 16px) 20px calc(var(--nav-h) + 24px); gap: 20px; }
