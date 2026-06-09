@@ -13,8 +13,8 @@ router.get('/', async (req, res) => {
 
     // Total del mes actual
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+    const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const lastDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, '0')}`;
 
     const { data: gastosDelMes } = await supabase
       .from('gastos')
@@ -25,8 +25,9 @@ router.get('/', async (req, res) => {
     const totalMes = gastosDelMes ? gastosDelMes.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0) : 0;
 
     // Total del mes anterior
-    const firstDayPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
-    const lastDayPrev = new Date(now.getFullYear(), now.getMonth(), 0).toISOString();
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const firstDayPrev = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-01`;
+    const lastDayPrev = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(new Date(prevDate.getFullYear(), prevDate.getMonth() + 1, 0).getDate()).padStart(2, '0')}`;
 
     const { data: gastosMesAnterior } = await supabase
       .from('gastos')

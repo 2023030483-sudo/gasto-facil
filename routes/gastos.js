@@ -78,6 +78,50 @@ router.post('/nuevo', async (req, res) => {
   }
 });
 
+// Editar gasto - form
+router.get('/:id/editar', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('gastos').select('*').eq('id', req.params.id).limit(1);
+    if (error) throw error;
+    const gasto = data?.[0];
+    if (!gasto) return res.redirect('/gastos');
+
+    res.render('editar-gasto', {
+      title: 'Editar Gasto',
+      activePage: 'gastos',
+      prefill: gasto,
+      gastoId: req.params.id
+    });
+  } catch (err) {
+    res.redirect('/gastos');
+  }
+});
+
+router.post('/:id/editar', async (req, res) => {
+  try {
+    const { concepto, monto, fecha, categoria, metodo_pago, notas } = req.body;
+    const { error } = await supabase.from('gastos').update({
+      concepto,
+      monto: parseFloat(monto),
+      fecha,
+      categoria,
+      metodo_pago,
+      notas
+    }).eq('id', req.params.id);
+
+    if (error) throw error;
+    res.redirect('/gastos');
+  } catch (err) {
+    res.render('editar-gasto', {
+      title: 'Editar Gasto',
+      activePage: 'gastos',
+      prefill: req.body,
+      gastoId: req.params.id,
+      error: err.message
+    });
+  }
+});
+
 // Eliminar gasto
 router.post('/:id/eliminar', async (req, res) => {
   try {

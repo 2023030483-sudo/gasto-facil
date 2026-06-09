@@ -5,10 +5,11 @@ const supabase = require('../middleware/supabase');
 router.get('/', async (req, res) => {
   try {
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
-    const firstDayPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
-    const lastDayPrev = new Date(now.getFullYear(), now.getMonth(), 0).toISOString();
+    const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const lastDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, '0')}`;
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const firstDayPrev = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-01`;
+    const lastDayPrev = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-${String(new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate()).padStart(2, '0')}`;
 
     const { data: gastosMes } = await supabase
       .from('gastos').select('*')

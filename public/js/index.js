@@ -14,15 +14,18 @@ async function load() {
   setActiveNav('inicio');
   try {
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
-    const hoy = now.toISOString().split('T')[0];
+    const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const lastDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, '0')}`;
+    const hoy = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const firstDayPrev = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-01`;
+    const lastDayPrev = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-${String(new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate()).padStart(2, '0')}`;
 
     const [{ data: gastos }, { data: gastosDelMes }, { data: gastosMesAnterior }, { data: gastosHoy }, { data: countMes }, { data: categorias }, { data: allGastos }] = await Promise.all([
       supabase.from('gastos').select('*').order('fecha', { ascending: false }).limit(3),
       // gastosDelMes, gastosMesAnterior, etc. are fetched below
       supabase.from('gastos').select('monto').gte('fecha', firstDay).lte('fecha', lastDay),
-      supabase.from('gastos').select('monto').gte('fecha', new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()).lte('fecha', new Date(now.getFullYear(), now.getMonth(), 0).toISOString()),
+      supabase.from('gastos').select('monto').gte('fecha', firstDayPrev).lte('fecha', lastDayPrev),
       supabase.from('gastos').select('monto').gte('fecha', hoy),
       supabase.from('gastos').select('id').gte('fecha', firstDay).lte('fecha', lastDay),
       supabase.from('gastos').select('categoria, monto').gte('fecha', firstDay).lte('fecha', lastDay),

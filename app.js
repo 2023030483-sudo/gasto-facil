@@ -23,7 +23,6 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Middleware
-app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(session({
@@ -39,6 +38,9 @@ app.use('/gastos', require('./routes/gastos'));
 app.use('/escanear', require('./routes/escanear'));
 app.use('/resumen', require('./routes/resumen'));
 app.use('/api', require('./routes/api'));
+
+// Static assets
+app.use(express.static(path.join(__dirname, 'public')));
 
 // 404
 app.use((req, res) => {

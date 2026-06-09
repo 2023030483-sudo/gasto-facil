@@ -1,0 +1,76 @@
+<%- include('partials/header', { showBack: true, backHref: '/gastos' }) %>
+
+<main class="main main--form">
+  <div class="form-card">
+
+    <!-- Hero -->
+    <div class="form-hero">
+      <div class="form-hero__gradient"></div>
+      <div class="form-hero__content">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.9"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      </div>
+    </div>
+
+    <form method="POST" action="/gastos/<%= gastoId %>/editar" class="form">
+
+      <!-- Concepto -->
+      <div class="form-group">
+        <label class="form-label">Concepto</label>
+        <input type="text" name="concepto" class="form-input" placeholder="¿En qué gastaste hoy?" value="<%= locals.prefill?.concepto || '' %>" required />
+      </div>
+
+      <!-- Monto -->
+      <div class="form-group">
+        <label class="form-label">Monto</label>
+        <div class="amount-input-wrapper">
+          <span class="amount-prefix">$</span>
+          <input type="number" name="monto" step="0.01" min="0" class="form-input amount-input" placeholder="0.00" value="<%= locals.prefill?.monto || '' %>" required />
+        </div>
+      </div>
+
+      <!-- Fecha + Categoría -->
+      <div class="form-row">
+        <div class="form-group form-group--half">
+          <label class="form-label">Fecha</label>
+          <input type="date" name="fecha" class="form-input" value="<%= locals.prefill?.fecha || new Date().toISOString().split('T')[0] %>" required />
+        </div>
+        <div class="form-group form-group--half">
+          <label class="form-label">Categoría</label>
+          <select name="categoria" class="form-input form-select">
+            <% ['Comida','Transporte','Servicios','Salud','Entretenimiento','Otros'].forEach(cat => { %>
+              <option value="<%= cat %>" <%= (locals.prefill?.categoria === cat) ? 'selected' : '' %>><%= cat %></option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+
+      <!-- Método de pago -->
+      <div class="form-group">
+        <label class="form-label">Método de pago</label>
+        <div class="payment-chips">
+          <% ['Efectivo','Tarjeta','Transferencia'].forEach(m => { %>
+            <label class="payment-chip">
+              <input type="radio" name="metodo_pago" value="<%= m %>" <%= (!locals.prefill?.metodo_pago && m === 'Efectivo') || locals.prefill?.metodo_pago === m ? 'checked' : '' %> />
+              <span><%= m %></span>
+            </label>
+          <% }) %>
+        </div>
+      </div>
+
+      <!-- Notas -->
+      <div class="form-group">
+        <label class="form-label">Notas</label>
+        <textarea name="notas" class="form-input form-textarea" placeholder="Agrega más detalles aquí..."><%= locals.prefill?.notas || '' %></textarea>
+      </div>
+
+      <!-- Buttons -->
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary">Actualizar</button>
+        <a href="/gastos" class="btn btn--outline">Cancelar</a>
+      </div>
+    </form>
+
+  </div>
+</main>
+
+<%- include('partials/bottomnav') %>

@@ -244,11 +244,29 @@ input, select, textarea { font-family: var(--font); }
 .category-badge--entretenimiento { background: rgba(245,158,11,0.1); color: #D97706; }
 .category-badge--otros         { background: rgba(115,119,133,0.1); color: #737785; }
 
-.delete-form { margin-left: 4px; }
-.btn-delete {
+.expense-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-edit, .btn-delete {
   width: 32px; height: 32px; border-radius: var(--radius-pill);
   display: flex; align-items: center; justify-content: center;
-  color: var(--red); transition: background 0.15s;
+  transition: background 0.15s;
+}
+
+.btn-edit {
+  color: var(--blue);
+  background: rgba(4,86,197,0.08);
+}
+
+.btn-edit:hover {
+  background: rgba(4,86,197,0.12);
+}
+
+.btn-delete {
+  color: var(--red);
 }
 .btn-delete:hover { background: rgba(186,26,26,0.08); }
 
