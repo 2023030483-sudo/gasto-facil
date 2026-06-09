@@ -1,8 +1,11 @@
 {
   "name": "Gasto Fácil",
   "short_name": "Gasto Fácil",
+  "description": "Administra tus gastos personales con facilidad y guarda tickets desde tu celular.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#0456C5",
   "icons": [

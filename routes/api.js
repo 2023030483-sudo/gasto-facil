@@ -1,8 +1,8 @@
-const express = require('express');
-const router = express.Router();
-const multer = require('multer');
+const express = require('express'); // crea la ruta web 
+const router = express.Router(); // creacion de un mini servidor para manejar las rutas de la api
+const multer = require('multer'); // para manejar la subida de archivos (tickets)
 
-const storage = multer.memoryStorage();
+const storage = multer.memoryStorage(); // guarda los archivos en la memoria ram 
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 function normalizeAmount(rawValue) {
@@ -58,6 +58,7 @@ function parseReceiptText(text) {
   const dateMatch = raw.match(/(\d{4}[\-/]\d{1,2}[\-/]\d{1,2})|(\d{1,2}[\-/]\d{1,2}[\-/]\d{2,4})/);
   const fecha = normalizeDate(dateMatch?.[0]) || new Date().toISOString().split('T')[0];
 
+  //agregar una nueva categoria para cada gasto dependiendo de las palabras que contenga el ticket
   const categoryKeywords = [
     { category: 'Comida', keywords: ['restaurante', 'café', 'cafe', 'pizza', 'comida', 'bar', 'burger', 'sushi'] },
     { category: 'Transporte', keywords: ['taxi', 'uber', 'didi', 'transporte', 'metro', 'autobús', 'autobus', 'bus'] },
@@ -66,6 +67,7 @@ function parseReceiptText(text) {
     { category: 'Entretenimiento', keywords: ['cine', 'cinepolis', 'teatro', 'streaming', 'spotify', 'netflix', 'bar', 'discoteca'] }
   ];
 
+  // Busca la categoría más relevante según las palabras clave encontradas en el texto del ticket
   const foundCategory = categoryKeywords.find(item => item.keywords.some(keyword => rawLower.includes(keyword)));
   const categoria = foundCategory ? foundCategory.category : 'Otros';
   const notas = lines.slice(2, 6).join(' | ') || 'Escaneado desde ticket';

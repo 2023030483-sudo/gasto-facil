@@ -1,9 +1,25 @@
 const CACHE_NAME = 'gasto-facil-cache-v1';
 const ASSETS = [
   '/',
+  '/index.html',
   '/css/main.css',
   '/manifest.json',
   '/js/pwa-register.js',
+  '/js/index.js',
+  '/js/common.js',
+  '/js/config.js',
+  '/js/escanear.js',
+  '/js/gastos.js',
+  '/js/nuevo-gasto.js',
+  '/js/confirmar-gasto.js',
+  '/js/resumen.js',
+  '/js/supabase.js',
+  '/404.html',
+  '/escanear/',
+  '/escanear/confirmar/',
+  '/gastos/',
+  '/gastos/nuevo/',
+  '/resumen/',
   '/icons/icon-192.png',
   '/icons/icon-512.png'
 ];
