@@ -102,21 +102,40 @@ input, select, textarea { font-family: var(--font); }
 
 /* ── SUMMARY CARD ── */
 .summary-card {
-  background: #3470DF;
-  border-radius: var(--radius-card);
-  padding: 24px;
+  background: linear-gradient(90deg, #3470DF 0%, #5b9bd5 100%);
+  border-radius: var(--radius-xl);
+  padding: 22px 22px 26px 22px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   position: relative;
-  overflow: hidden;
-  box-shadow: 0 10px 25px -5px rgba(79,134,247,0.2);
+  overflow: visible;
+  box-shadow: 0 22px 36px -14px rgba(52,112,223,0.28);
+  min-height: 120px;
 }
 .summary-card--resumen { gap: 8px; border-radius: var(--radius-xl); }
-.summary-card__top { display: flex; justify-content: space-between; align-items: flex-start; }
-.summary-card__label { font-size: 14px; font-weight: 600; color: rgba(254,252,255,0.9); margin-bottom: 4px; }
-.summary-card__eyebrow { font-size: 16px; font-weight: 400; color: #B0C6FF; letter-spacing: 1.6px; text-transform: uppercase; }
-.summary-card__amount { font-size: 40px; font-weight: 700; color: #FEFCFF; letter-spacing: -0.8px; line-height: 1.2; }
+.summary-card__top {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.summary-card__top > div { display: flex; flex-direction: column; gap: 6px; }
+.summary-card__left { flex: 1; }
+.summary-card__label { font-size: 15px; font-weight: 600; color: rgba(254,252,255,0.95); margin-bottom: 0; }
+.summary-card__amount { font-size: 48px; font-weight: 800; color: #FEFCFF; letter-spacing: -0.6px; line-height: 1.0; }
+.summary-card__amount .currency { font-size: 18px; margin-right: 6px; opacity: 0.95; vertical-align: middle; }
+.summary-card__amount .value { font-size: 48px; font-weight: 800; }
+.summary-card__amount .cents { font-size: 20px; opacity: 0.95; margin-left: 6px; }
+
+.summary-card__icon {
+  width: 44px; height: 44px; border-radius: 9999px; display:flex; align-items:center; justify-content:center;
+  background: rgba(255,255,255,0.12); backdrop-filter: blur(2px);
+}
+.summary-card__icon svg { transform: scale(1.05); }
+
+@media (max-width: 420px) {
+  .summary-card { padding: 18px; min-height: 110px; }
+  .summary-card__amount { font-size: 40px; }
+  .summary-card__amount .value { font-size: 40px; }
+}
 .summary-card__amount--lg { font-size: 40px; padding-bottom: 8px; }
 .summary-card__badge {
   display: inline-flex; align-items: center; gap: 4px;

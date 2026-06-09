@@ -69,6 +69,31 @@ router.get('/', async (req, res) => {
       categoriaTop = Object.keys(catMap).reduce((a, b) => catMap[a] > catMap[b] ? a : b, 'Comida');
     }
 
+    // Totales por mes (agrupar por año-mes)
+    const { data: allGastos } = await supabase
+      .from('gastos')
+      .select('monto, fecha')
+      .order('fecha', { ascending: false });
+
+    const monthlyMap = {};
+    (allGastos || []).forEach(g => {
+      if (!g || !g.fecha) return;
+      const d = new Date(g.fecha);
+      if (isNaN(d)) return;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthlyMap[key] = monthlyMap[key] || { year: d.getFullYear(), month: d.getMonth() + 1, total: 0 };
+      monthlyMap[key].total += parseFloat(g.monto || 0);
+    });
+
+    const monthlyTotals = Object.values(monthlyMap)
+      .sort((a, b) => (b.year - a.year) || (b.month - a.month))
+      .map(m => ({
+        label: new Date(m.year, m.month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' }),
+        year: m.year,
+        month: m.month,
+        total: m.total
+      }));
+
     res.render('index', {
       title: 'Inicio',
       activePage: 'inicio',
@@ -78,6 +103,7 @@ router.get('/', async (req, res) => {
       totalHoy,
       countMes: countMes ? countMes.length : 0,
       categoriaTop,
+      monthlyTotals,
       error: error ? error.message : null
     });
   } catch (err) {

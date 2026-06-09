@@ -18,13 +18,15 @@ async function load() {
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
     const hoy = now.toISOString().split('T')[0];
 
-    const [{ data: gastos }, { data: gastosDelMes }, { data: gastosMesAnterior }, { data: gastosHoy }, { data: countMes }, { data: categorias }] = await Promise.all([
+    const [{ data: gastos }, { data: gastosDelMes }, { data: gastosMesAnterior }, { data: gastosHoy }, { data: countMes }, { data: categorias }, { data: allGastos }] = await Promise.all([
       supabase.from('gastos').select('*').order('fecha', { ascending: false }).limit(3),
+      // gastosDelMes, gastosMesAnterior, etc. are fetched below
       supabase.from('gastos').select('monto').gte('fecha', firstDay).lte('fecha', lastDay),
       supabase.from('gastos').select('monto').gte('fecha', new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()).lte('fecha', new Date(now.getFullYear(), now.getMonth(), 0).toISOString()),
       supabase.from('gastos').select('monto').gte('fecha', hoy),
       supabase.from('gastos').select('id').gte('fecha', firstDay).lte('fecha', lastDay),
-      supabase.from('gastos').select('categoria, monto').gte('fecha', firstDay).lte('fecha', lastDay)
+      supabase.from('gastos').select('categoria, monto').gte('fecha', firstDay).lte('fecha', lastDay),
+      supabase.from('gastos').select('monto, fecha').order('fecha', { ascending: false })
     ]);
 
     const totalMes = gastosDelMes ? gastosDelMes.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0) : 0;
@@ -41,11 +43,49 @@ async function load() {
       ? Object.keys(catMap).reduce((a, b) => catMap[a] > catMap[b] ? a : b, 'Comida')
       : 'Comida';
 
-    totalMesEl.textContent = formatCurrency(totalMes);
+    // Insert formatted amount into structured spans
+    if (totalMesEl) {
+      const formatted = formatCurrency(totalMes, 2); // e.g. "4,500.00"
+      const parts = formatted.split('.');
+      const whole = parts[0] || '0';
+      const cents = parts[1] || '00';
+      totalMesEl.textContent = whole;
+      const centsEl = totalMesEl.parentElement.querySelector('.cents');
+      if (centsEl) centsEl.textContent = `.${cents}`;
+    }
     porcentajeCambioEl.textContent = `${Math.abs(porcentajeCambio)}% vs mes anterior`;
     totalHoyEl.textContent = `$${formatCurrency(totalHoy, 0)}`;
     countMesEl.textContent = String(countMes?.length || 0);
     categoriaTopEl.textContent = categoriaTop;
+
+    // Render monthly totals (client-side)
+    const monthlyTotalsEl = document.getElementById('monthlyTotals');
+    if (monthlyTotalsEl) {
+      const monthlyMap = {};
+      (allGastos || []).forEach(g => {
+        if (!g || !g.fecha) return;
+        const d = new Date(g.fecha);
+        if (isNaN(d)) return;
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        monthlyMap[key] = monthlyMap[key] || { year: d.getFullYear(), month: d.getMonth() + 1, total: 0 };
+        monthlyMap[key].total += parseFloat(g.monto || 0);
+      });
+      const monthlyTotals = Object.values(monthlyMap)
+        .sort((a, b) => (b.year - a.year) || (b.month - a.month))
+        .map(m => ({
+          label: new Date(m.year, m.month - 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' }),
+          year: m.year,
+          month: m.month,
+          total: m.total
+        }));
+
+      monthlyTotalsEl.innerHTML = monthlyTotals.map(m => `
+        <a href="/resumen?year=${m.year}&month=${m.month}" class="month-card" style="min-width:160px; background:#fff; border-radius:10px; padding:1rem; box-shadow:0 6px 18px rgba(0,0,0,0.06); text-decoration:none; color:inherit;">
+          <div style="font-size:0.9rem; color:#6b7280; margin-bottom:0.25rem;">${m.label}</div>
+          <div style="font-weight:700; font-size:1.1rem; color:#0456C5">$${formatCurrency(m.total, 2)}</div>
+        </a>
+      `).join('');
+    }
 
     if (!gastos || gastos.length === 0) {
       noExpensesEl.style.display = 'block';
