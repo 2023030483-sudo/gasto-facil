@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gasto-facil-cache-v1';
+const CACHE_NAME = 'gasto-facil-cache-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -25,6 +25,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
@@ -36,21 +37,54 @@ self.addEventListener('activate', event => {
       Promise.all(
         keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
       )
-    )
+    ).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
+  if (['style', 'script', 'image', 'font'].includes(event.request.destination)) {
+    event.respondWith(cacheFirstWithUpdate(event.request));
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      return cachedResponse || fetch(event.request).then(response => {
-        return caches.open(CACHE_NAME).then(cache => {
-          if (event.request.method === 'GET' && response.ok) {
-            cache.put(event.request, response.clone());
-          }
-          return response;
-        });
-      }).catch(() => caches.match('/'));
-    })
+    caches.match(event.request).then(cachedResponse => cachedResponse || fetch(event.request))
   );
 });
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+  try {
+    const response = await fetch(request);
+    if (response && response.status === 200) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    return caches.match(request) || caches.match('/index.html') || caches.match('/');
+  }
+}
+
+async function cacheFirstWithUpdate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cachedResponse = await cache.match(request);
+  const networkResponse = fetch(request).then(response => {
+    if (response && response.status === 200) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  }).catch(() => null);
+  return cachedResponse || networkResponse;
+}
