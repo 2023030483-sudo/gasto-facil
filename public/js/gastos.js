@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js';
+import { supabase, initSupabaseSession } from './supabase.js';
 import { formatCurrency, formatDate, setActiveNav } from './common.js';
 
 const listContainer = document.getElementById('expensesList');
@@ -49,7 +49,8 @@ async function load() {
   document.querySelector('input[name="busqueda"]').value = busqueda;
 
   try {
-    let query = supabase.from('gastos').select('*').order('fecha', { ascending: false });
+    const userId = await initSupabaseSession();
+    let query = supabase.from('gastos').select('*').eq('user_id', userId).order('fecha', { ascending: false });
     if (categoria && categoria !== 'Todos') {
       query = query.eq('categoria', categoria);
     }
@@ -79,7 +80,8 @@ function attachDeleteListeners() {
       const id = event.currentTarget.dataset.id;
       if (!id || !confirm('¿Eliminar este gasto?')) return;
       try {
-        await supabase.from('gastos').delete().eq('id', id);
+        const userId = await initSupabaseSession();
+        await supabase.from('gastos').delete().eq('id', id).eq('user_id', userId);
         window.location.reload();
       } catch (err) {
         alert('No se pudo eliminar el gasto. Intenta de nuevo.');

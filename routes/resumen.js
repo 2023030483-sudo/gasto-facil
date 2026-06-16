@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../middleware/supabase');
+const { createSupabaseClient } = require('../middleware/supabase');
+
+function getSupabaseClient(req) {
+  return createSupabaseClient(req.session.supabaseSession);
+}
+
+function getCurrentUserId(req) {
+  return req.session?.user_id || null;
+}
 
 router.get('/', async (req, res) => {
   try {
@@ -11,12 +19,17 @@ router.get('/', async (req, res) => {
     const firstDayPrev = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-01`;
     const lastDayPrev = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-${String(new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate()).padStart(2, '0')}`;
 
+    const supabase = getSupabaseClient(req);
+    const userId = getCurrentUserId(req);
+
     const { data: gastosMes } = await supabase
       .from('gastos').select('*')
+      .eq('user_id', userId)
       .gte('fecha', firstDay).lte('fecha', lastDay);
 
     const { data: gastosPrev } = await supabase
       .from('gastos').select('monto')
+      .eq('user_id', userId)
       .gte('fecha', firstDayPrev).lte('fecha', lastDayPrev);
 
     const totalMes = gastosMes ? gastosMes.reduce((s, g) => s + parseFloat(g.monto || 0), 0) : 0;

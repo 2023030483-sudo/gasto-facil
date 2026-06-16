@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js';
+import { supabase, initSupabaseSession } from './supabase.js';
 import { setActiveNav, getTicketData, clearTicketData } from './common.js';
 
 const form = document.getElementById('confirmForm');
@@ -34,6 +34,7 @@ async function handleSubmit(event) {
   };
 
   try {
+    const userId = await initSupabaseSession();
     const { error } = await supabase.from('gastos').insert([{
       concepto: payload.concepto || payload.establecimiento,
       monto: payload.monto,
@@ -41,6 +42,7 @@ async function handleSubmit(event) {
       categoria: payload.categoria,
       metodo_pago: payload.metodo_pago,
       notas: payload.notas || 'Escaneado desde ticket',
+      user_id: userId,
       created_at: new Date().toISOString()
     }]);
 

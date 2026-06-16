@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js';
+import { supabase, initSupabaseSession } from './supabase.js';
 import { formatCurrency, setActiveNav, formatDate } from './common.js';
 
 const totalMesEl = document.getElementById('totalMes');
@@ -13,6 +13,7 @@ const errorEl = document.getElementById('pageError');
 async function load() {
   setActiveNav('inicio');
   try {
+    const userId = await initSupabaseSession();
     const now = new Date();
     const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     const lastDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, '0')}`;
@@ -22,14 +23,14 @@ async function load() {
     const lastDayPrev = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}-${String(new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate()).padStart(2, '0')}`;
 
     const [{ data: gastos }, { data: gastosDelMes }, { data: gastosMesAnterior }, { data: gastosHoy }, { data: countMes }, { data: categorias }, { data: allGastos }] = await Promise.all([
-      supabase.from('gastos').select('*').order('fecha', { ascending: false }).limit(3),
+      supabase.from('gastos').select('*').eq('user_id', userId).order('fecha', { ascending: false }).limit(3),
       // gastosDelMes, gastosMesAnterior, etc. are fetched below
-      supabase.from('gastos').select('monto').gte('fecha', firstDay).lte('fecha', lastDay),
-      supabase.from('gastos').select('monto').gte('fecha', firstDayPrev).lte('fecha', lastDayPrev),
-      supabase.from('gastos').select('monto').gte('fecha', hoy),
-      supabase.from('gastos').select('id').gte('fecha', firstDay).lte('fecha', lastDay),
-      supabase.from('gastos').select('categoria, monto').gte('fecha', firstDay).lte('fecha', lastDay),
-      supabase.from('gastos').select('monto, fecha').order('fecha', { ascending: false })
+      supabase.from('gastos').select('monto').eq('user_id', userId).gte('fecha', firstDay).lte('fecha', lastDay),
+      supabase.from('gastos').select('monto').eq('user_id', userId).gte('fecha', firstDayPrev).lte('fecha', lastDayPrev),
+      supabase.from('gastos').select('monto').eq('user_id', userId).gte('fecha', hoy),
+      supabase.from('gastos').select('id').eq('user_id', userId).gte('fecha', firstDay).lte('fecha', lastDay),
+      supabase.from('gastos').select('categoria, monto').eq('user_id', userId).gte('fecha', firstDay).lte('fecha', lastDay),
+      supabase.from('gastos').select('monto, fecha').eq('user_id', userId).order('fecha', { ascending: false })
     ]);
 
     const totalMes = gastosDelMes ? gastosDelMes.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0) : 0;

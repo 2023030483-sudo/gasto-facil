@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js';
+import { supabase, initSupabaseSession } from './supabase.js';
 import { formatCurrency, setActiveNav } from './common.js';
 
 const totalMesEl = document.getElementById('totalMes');
@@ -31,6 +31,7 @@ function buildDonutSvg(categorias) {
 async function load() {
   setActiveNav('resumen');
   try {
+    const userId = await initSupabaseSession();
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
@@ -38,8 +39,8 @@ async function load() {
     const lastDayPrev = new Date(now.getFullYear(), now.getMonth(), 0).toISOString();
 
     const [{ data: gastosMes }, { data: gastosPrev }] = await Promise.all([
-      supabase.from('gastos').select('*').gte('fecha', firstDay).lte('fecha', lastDay),
-      supabase.from('gastos').select('monto').gte('fecha', firstDayPrev).lte('fecha', lastDayPrev)
+      supabase.from('gastos').select('*').eq('user_id', userId).gte('fecha', firstDay).lte('fecha', lastDay),
+      supabase.from('gastos').select('monto').eq('user_id', userId).gte('fecha', firstDayPrev).lte('fecha', lastDayPrev)
     ]);
 
     const totalMes = (gastosMes || []).reduce((sum, g) => sum + parseFloat(g.monto || 0), 0);

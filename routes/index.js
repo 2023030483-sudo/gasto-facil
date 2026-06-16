@@ -1,13 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../middleware/supabase');
+const { createSupabaseClient } = require('../middleware/supabase');
+
+function getSupabaseClient(req) {
+  return createSupabaseClient(req.session.supabaseSession);
+}
 
 router.get('/', async (req, res) => {
   try {
+    const supabase = getSupabaseClient(req);
+    const userId = req.session?.user_id;
+
     // Obtener gastos recientes
     const { data: gastos, error } = await supabase
       .from('gastos')
       .select('*')
+      .eq('user_id', userId)
       .order('fecha', { ascending: false })
       .limit(3);
 
@@ -19,6 +27,7 @@ router.get('/', async (req, res) => {
     const { data: gastosDelMes } = await supabase
       .from('gastos')
       .select('monto')
+      .eq('user_id', userId)
       .gte('fecha', firstDay)
       .lte('fecha', lastDay);
 
@@ -32,6 +41,7 @@ router.get('/', async (req, res) => {
     const { data: gastosMesAnterior } = await supabase
       .from('gastos')
       .select('monto')
+      .eq('user_id', userId)
       .gte('fecha', firstDayPrev)
       .lte('fecha', lastDayPrev);
 
@@ -43,6 +53,7 @@ router.get('/', async (req, res) => {
     const { data: gastosHoy } = await supabase
       .from('gastos')
       .select('monto')
+      .eq('user_id', userId)
       .gte('fecha', hoy);
 
     const totalHoy = gastosHoy ? gastosHoy.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0) : 0;
@@ -51,6 +62,7 @@ router.get('/', async (req, res) => {
     const { data: countMes } = await supabase
       .from('gastos')
       .select('id')
+      .eq('user_id', userId)
       .gte('fecha', firstDay)
       .lte('fecha', lastDay);
 
@@ -58,6 +70,7 @@ router.get('/', async (req, res) => {
     const { data: categorias } = await supabase
       .from('gastos')
       .select('categoria, monto')
+      .eq('user_id', userId)
       .gte('fecha', firstDay)
       .lte('fecha', lastDay);
 
@@ -74,6 +87,7 @@ router.get('/', async (req, res) => {
     const { data: allGastos } = await supabase
       .from('gastos')
       .select('monto, fecha')
+      .eq('user_id', userId)
       .order('fecha', { ascending: false });
 
     const monthlyMap = {};

@@ -12,4 +12,26 @@ const supabase = createClient(
   supabaseKey || 'placeholder-key'
 );
 
-module.exports = supabase;
+function createSupabaseClient(session = null) {
+  const client = createClient(
+    supabaseUrl || 'https://placeholder.supabase.co',
+    supabaseKey || 'placeholder-key',
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    }
+  );
+
+  if (session?.access_token || session?.refresh_token) {
+    client.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token
+    });
+  }
+
+  return client;
+}
+
+module.exports = { supabase, createSupabaseClient };

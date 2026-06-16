@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const { createSupabaseClient } = require('../middleware/supabase');
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
@@ -24,8 +25,9 @@ router.get('/confirmar', (req, res) => {
 });
 
 router.post('/confirmar', async (req, res) => {
-  const supabase = require('../middleware/supabase');
+  const supabase = createSupabaseClient(req.session.supabaseSession);
   try {
+    const userId = req.session?.user_id || null;
     const { concepto, monto, fecha, categoria, metodo_pago, notas, establecimiento } = req.body;
     const { error } = await supabase.from('gastos').insert([{
       concepto: concepto || establecimiento,
@@ -34,6 +36,7 @@ router.post('/confirmar', async (req, res) => {
       categoria,
       metodo_pago: metodo_pago || 'Efectivo',
       notas: notas || 'Escaneado desde ticket',
+      user_id: userId,
       created_at: new Date().toISOString()
     }]);
     if (error) throw error;

@@ -5,6 +5,7 @@ const path = require('path');
 const https = require('https');
 const fs = require('fs');
 const os = require('os');
+const { createSupabaseClient } = require('./middleware/supabase');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,6 +33,24 @@ app.use(session({
   cookie: { maxAge: 24 * 60 * 60 * 1000 }
 }));
 
+app.use(async (req, res, next) => {
+  try {
+    if (!req.session.supabaseSession) {
+      const supabaseClient = createSupabaseClient();
+      const { data, error } = await supabaseClient.auth.signInAnonymously();
+      if (error) {
+        return next(error);
+      }
+
+      req.session.supabaseSession = data.session;
+      req.session.user_id = data.user?.id || null;
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Routes
 app.use('/', require('./routes/index'));
 app.use('/gastos', require('./routes/gastos'));
@@ -47,14 +66,24 @@ app.use((req, res) => {
   res.status(404).render('404', { title: 'Página no encontrada' });
 });
 
-// HTTPS
-const credentials = {
-  key: fs.readFileSync(`${ip}+2-key.pem`),
-  cert: fs.readFileSync(`${ip}+2.pem`)
-};
+// HTTPS if certificates are available, otherwise fallback to HTTP
+const keyPath = `${ip}+2-key.pem`;
+const certPath = `${ip}+2.pem`;
 
-https.createServer(credentials, app).listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Gasto Fácil corriendo en:`);
-  console.log(`   Local:   https://localhost:${PORT}`);
-  console.log(`   Red:     https://${ip}:${PORT}`);
-});
+if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+  const credentials = {
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath)
+  };
+
+  https.createServer(credentials, app).listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Gasto Fácil corriendo en HTTPS:`);
+    console.log(`   Local:   https://localhost:${PORT}`);
+    console.log(`   Red:     https://${ip}:${PORT}`);
+  });
+} else {
+  app.listen(PORT, () => {
+    console.log(`🚀 Gasto Fácil corriendo en HTTP:`);
+    console.log(`   Local:   http://localhost:${PORT}`);
+  });
+}

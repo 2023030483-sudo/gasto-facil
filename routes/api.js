@@ -1,6 +1,7 @@
 const express = require('express'); // crea la ruta web 
 const router = express.Router(); // creacion de un mini servidor para manejar las rutas de la api
 const multer = require('multer'); // para manejar la subida de archivos (tickets)
+const { createSupabaseClient } = require('../middleware/supabase');
 
 const storage = multer.memoryStorage(); // guarda los archivos en la memoria ram 
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
@@ -81,6 +82,28 @@ function parseReceiptText(text) {
     notas
   };
 }
+
+router.get('/session', async (req, res) => {
+  try {
+    if (!req.session.supabaseSession) {
+      const supabaseClient = createSupabaseClient();
+      const { data, error } = await supabaseClient.auth.signInAnonymously();
+      if (error) {
+        throw error;
+      }
+      req.session.supabaseSession = data.session;
+      req.session.user_id = data.user?.id || null;
+    }
+
+    res.json({
+      ok: true,
+      session: req.session.supabaseSession,
+      user_id: req.session.user_id
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Analizar ticket con Gemini o Google Vision OCR
 router.post('/analizar-ticket', upload.single('ticket'), async (req, res) => {
