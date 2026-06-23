@@ -1,4 +1,4 @@
-import { supabase, initSupabaseSession } from './supabase.js';
+import { supabase } from './supabase.js';
 import { formatCurrency, setActiveNav, formatDate } from './common.js';
 
 const authScreen = document.getElementById('authScreen');
@@ -9,6 +9,7 @@ const passwordInput = document.getElementById('authPassword');
 const loginButton = document.getElementById('loginButton');
 const registerButton = document.getElementById('registerButton');
 const guestButton = document.getElementById('guestButton');
+const logoutButton = document.getElementById('logoutButton');
 const authMessage = document.getElementById('authMessage');
 
 const totalMesEl = document.getElementById('totalMes');
@@ -23,11 +24,32 @@ const errorEl = document.getElementById('pageError');
 const GUEST_ACCESS_KEY = 'gastoFacilGuestAccess';
 let dashboardStarted = false;
 
+const buttonDefaults = new Map(
+  [loginButton, registerButton, guestButton]
+    .filter(Boolean)
+    .map(button => [button, button.innerHTML])
+);
+
 function setAuthMessage(message = '', type = '') {
   if (!authMessage) return;
+
   authMessage.textContent = message;
   authMessage.classList.remove('auth-message--error', 'auth-message--success');
-  if (type) authMessage.classList.add(`auth-message--${type}`);
+
+  if (type) {
+    authMessage.classList.add(`auth-message--${type}`);
+  }
+}
+
+function setButtonText(button, text) {
+  if (!button) return;
+  button.textContent = text;
+}
+
+function restoreButton(button) {
+  if (!button) return;
+  const original = buttonDefaults.get(button);
+  if (original) button.innerHTML = original;
 }
 
 function setAuthLoading(isLoading, activeButton = null) {
@@ -35,20 +57,42 @@ function setAuthLoading(isLoading, activeButton = null) {
     if (button) button.disabled = isLoading;
   });
 
-  if (loginButton) loginButton.textContent = activeButton === 'login' ? 'Ingresando…' : 'Iniciar sesión';
-  if (registerButton) registerButton.textContent = activeButton === 'register' ? 'Creando cuenta…' : 'Crear una cuenta';
-  if (guestButton) guestButton.textContent = activeButton === 'guest' ? 'Ingresando…' : 'Continuar como invitado';
+  if (isLoading) {
+    if (activeButton === 'login') setButtonText(loginButton, 'Ingresando…');
+    if (activeButton === 'register') setButtonText(registerButton, 'Creando cuenta…');
+    if (activeButton === 'guest') setButtonText(guestButton, 'Ingresando…');
+    return;
+  }
+
+  restoreButton(loginButton);
+  restoreButton(registerButton);
+  restoreButton(guestButton);
 }
 
 function translateAuthError(error) {
   const message = String(error?.message || 'No fue posible completar la operación.');
   const lower = message.toLowerCase();
 
-  if (lower.includes('invalid login credentials')) return 'El correo o la contraseña no son correctos.';
-  if (lower.includes('email not confirmed')) return 'Primero confirma tu correo electrónico.';
-  if (lower.includes('password should be at least')) return 'La contraseña debe tener al menos 6 caracteres.';
-  if (lower.includes('user already registered')) return 'Ya existe una cuenta con ese correo.';
-  if (lower.includes('anonymous sign-ins are disabled')) return 'El acceso como invitado está desactivado en Supabase.';
+  if (lower.includes('invalid login credentials')) {
+    return 'El correo o la contraseña no son correctos.';
+  }
+
+  if (lower.includes('email not confirmed')) {
+    return 'Primero confirma tu correo desde el mensaje que te envió Supabase.';
+  }
+
+  if (lower.includes('password should be at least')) {
+    return 'La contraseña debe tener al menos 6 caracteres.';
+  }
+
+  if (lower.includes('user already registered')) {
+    return 'Ya existe una cuenta con ese correo.';
+  }
+
+  if (lower.includes('anonymous sign-ins are disabled')) {
+    return 'El acceso como invitado está desactivado en Supabase.';
+  }
+
   return message;
 }
 
@@ -61,7 +105,7 @@ function validateCredentials() {
     return null;
   }
 
-  if (!emailInput.checkValidity()) {
+  if (!emailInput?.checkValidity()) {
     setAuthMessage('Escribe un correo electrónico válido.', 'error');
     return null;
   }
@@ -74,25 +118,90 @@ function validateCredentials() {
   return { email, password };
 }
 
+function cleanAuthUrl() {
+  const hasAuthHash =
+    window.location.hash.includes('access_token=') ||
+    window.location.hash.includes('error=');
+
+  const query = new URLSearchParams(window.location.search);
+  const hasAuthQuery =
+    query.has('code') ||
+    query.has('token_hash') ||
+    query.has('error') ||
+    query.has('error_code') ||
+    query.has('error_description');
+
+  if (hasAuthHash || hasAuthQuery) {
+    window.history.replaceState({}, document.title, `${window.location.origin}/`);
+  }
+}
+
+function readAuthErrorFromUrl() {
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const queryParams = new URLSearchParams(window.location.search);
+
+  const description =
+    queryParams.get('error_description') ||
+    hashParams.get('error_description') ||
+    queryParams.get('error') ||
+    hashParams.get('error');
+
+  return description ? decodeURIComponent(description.replace(/\+/g, ' ')) : '';
+}
+
 function showAuthScreen() {
-  if (appShell) appShell.hidden = true;
-  if (authScreen) authScreen.hidden = false;
+  if (appShell) {
+    appShell.hidden = true;
+    appShell.style.display = 'none';
+  }
+
+  if (authScreen) {
+    authScreen.hidden = false;
+    authScreen.style.display = '';
+  }
+
+  document.body.classList.add('auth-active');
   document.title = 'Iniciar sesión — Gasto Fácil';
 }
 
 async function showDashboard() {
-  if (authScreen) authScreen.hidden = true;
-  if (appShell) appShell.hidden = false;
+  if (!appShell) {
+    throw new Error('No se encontró el panel principal de la aplicación.');
+  }
+
+  if (authScreen) {
+    authScreen.hidden = true;
+    authScreen.style.display = 'none';
+  }
+
+  appShell.hidden = false;
+  appShell.style.display = 'block';
+  document.body.classList.remove('auth-active');
+
   document.title = 'Inicio — Gasto Fácil';
+  window.scrollTo({ top: 0, behavior: 'auto' });
 
   if (!dashboardStarted) {
     dashboardStarted = true;
-    await loadDashboard();
+
+    try {
+      await loadDashboard();
+    } catch (error) {
+      dashboardStarted = false;
+
+      if (errorEl) {
+        errorEl.textContent = error?.message || 'No se pudo cargar el tablero.';
+        errorEl.style.display = 'block';
+      }
+
+      console.error('Error al cargar el tablero:', error);
+    }
   }
 }
 
 async function handleLogin(event) {
   event.preventDefault();
+
   const credentials = validateCredentials();
   if (!credentials) return;
 
@@ -100,9 +209,15 @@ async function handleLogin(event) {
   setAuthLoading(true, 'login');
 
   try {
-    const { error } = await supabase.auth.signInWithPassword(credentials);
+    const { data, error } = await supabase.auth.signInWithPassword(credentials);
     if (error) throw error;
+
+    if (!data?.session?.user?.id) {
+      throw new Error('Supabase no devolvió una sesión válida.');
+    }
+
     localStorage.removeItem(GUEST_ACCESS_KEY);
+    cleanAuthUrl();
     await showDashboard();
   } catch (error) {
     setAuthMessage(translateAuthError(error), 'error');
@@ -119,17 +234,28 @@ async function handleRegister() {
   setAuthLoading(true, 'register');
 
   try {
-    const { data, error } = await supabase.auth.signUp(credentials);
+    const { data, error } = await supabase.auth.signUp({
+      email: credentials.email,
+      password: credentials.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`
+      }
+    });
+
     if (error) throw error;
 
     localStorage.removeItem(GUEST_ACCESS_KEY);
 
-    if (data.session) {
+    if (data?.session?.user?.id) {
+      cleanAuthUrl();
       await showDashboard();
       return;
     }
 
-    setAuthMessage('Cuenta creada. Revisa tu correo para confirmarla y después inicia sesión.', 'success');
+    setAuthMessage(
+      'Cuenta creada. Abre el correo de confirmación y después vuelve a iniciar sesión.',
+      'success'
+    );
   } catch (error) {
     setAuthMessage(translateAuthError(error), 'error');
   } finally {
@@ -142,8 +268,13 @@ async function handleGuest() {
   setAuthLoading(true, 'guest');
 
   try {
-    const { error } = await supabase.auth.signInAnonymously();
+    const { data, error } = await supabase.auth.signInAnonymously();
     if (error) throw error;
+
+    if (!data?.session?.user?.id) {
+      throw new Error('No se pudo crear la sesión de invitado.');
+    }
+
     localStorage.setItem(GUEST_ACCESS_KEY, 'true');
     await showDashboard();
   } catch (error) {
@@ -153,25 +284,72 @@ async function handleGuest() {
   }
 }
 
+async function handleLogout() {
+  if (!logoutButton) return;
+
+  logoutButton.disabled = true;
+
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const wasAnonymous = Boolean(sessionData?.session?.user?.is_anonymous);
+
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+
+    localStorage.removeItem(GUEST_ACCESS_KEY);
+    dashboardStarted = false;
+
+    if (authForm) authForm.reset();
+    if (expensesListEl) expensesListEl.innerHTML = '';
+    if (noExpensesEl) noExpensesEl.style.display = 'none';
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.style.display = 'none';
+    }
+
+    setAuthMessage(
+      wasAnonymous
+        ? 'Sesión de invitado cerrada. Al entrar nuevamente se creará un invitado nuevo.'
+        : 'Sesión cerrada correctamente.',
+      'success'
+    );
+
+    showAuthScreen();
+  } catch (error) {
+    if (errorEl) {
+      errorEl.textContent = translateAuthError(error);
+      errorEl.style.display = 'block';
+    }
+  } finally {
+    logoutButton.disabled = false;
+  }
+}
+
 async function bootstrapAuth() {
   showAuthScreen();
+
+  const redirectError = readAuthErrorFromUrl();
+  if (redirectError) {
+    setAuthMessage(redirectError, 'error');
+  }
 
   try {
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;
 
     const session = data?.session;
-    if (!session) return;
+    if (!session?.user?.id) return;
 
-    const isAnonymous = Boolean(session.user?.is_anonymous);
+    const isAnonymous = Boolean(session.user.is_anonymous);
     const guestWasChosen = localStorage.getItem(GUEST_ACCESS_KEY) === 'true';
 
-    // Las sesiones anónimas antiguas se cierran para que el nuevo login sí aparezca.
+    // Evita reutilizar una sesión anónima antigua si el usuario no eligió Invitado.
     if (isAnonymous && !guestWasChosen) {
       await supabase.auth.signOut();
       return;
     }
 
+    cleanAuthUrl();
     await showDashboard();
   } catch (error) {
     setAuthMessage(translateAuthError(error), 'error');
@@ -181,7 +359,14 @@ async function bootstrapAuth() {
 async function loadDashboard() {
   setActiveNav('inicio');
   try {
-    const userId = await initSupabaseSession();
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) {
+      showAuthScreen();
+      throw new Error('Tu sesión no está activa. Inicia sesión nuevamente.');
+    }
     const now = new Date();
     const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     const lastDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, '0')}`;
@@ -289,4 +474,24 @@ async function loadDashboard() {
 authForm?.addEventListener('submit', handleLogin);
 registerButton?.addEventListener('click', handleRegister);
 guestButton?.addEventListener('click', handleGuest);
+logoutButton?.addEventListener('click', handleLogout);
+
+supabase.auth.onAuthStateChange((event, session) => {
+  window.setTimeout(() => {
+    if (event === 'SIGNED_IN' && session?.user?.id) {
+      cleanAuthUrl();
+      showDashboard().catch(error => {
+        setAuthMessage(translateAuthError(error), 'error');
+      });
+      return;
+    }
+
+    if (event === 'SIGNED_OUT') {
+      localStorage.removeItem(GUEST_ACCESS_KEY);
+      dashboardStarted = false;
+      showAuthScreen();
+    }
+  }, 0);
+});
+
 window.addEventListener('DOMContentLoaded', bootstrapAuth);

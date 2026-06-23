@@ -1007,3 +1007,41 @@ input, select, textarea { font-family: var(--font); }
 @media (min-width: 481px) {
   .auth-screen { box-shadow: 0 0 45px rgba(0,0,0,.30); }
 }
+
+
+/* ── CERRAR SESIÓN ── */
+.logout-button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  color: #B42318;
+  background: #FFF0EE;
+  border: 1px solid #FFD5CF;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+}
+.logout-button:hover {
+  background: #FFE4DF;
+}
+.logout-button:active {
+  transform: scale(0.97);
+}
+.logout-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+@media (max-width: 360px) {
+  .logout-button {
+    padding: 8px 10px;
+  }
+  .logout-button span {
+    display: none;
+  }
+}
+
