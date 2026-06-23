@@ -1,6 +1,16 @@
 import { supabase, initSupabaseSession } from './supabase.js';
 import { formatCurrency, setActiveNav, formatDate } from './common.js';
 
+const authScreen = document.getElementById('authScreen');
+const appShell = document.getElementById('appShell');
+const authForm = document.getElementById('authForm');
+const emailInput = document.getElementById('authEmail');
+const passwordInput = document.getElementById('authPassword');
+const loginButton = document.getElementById('loginButton');
+const registerButton = document.getElementById('registerButton');
+const guestButton = document.getElementById('guestButton');
+const authMessage = document.getElementById('authMessage');
+
 const totalMesEl = document.getElementById('totalMes');
 const porcentajeCambioEl = document.getElementById('porcentajeCambio');
 const totalHoyEl = document.getElementById('totalHoy');
@@ -10,7 +20,165 @@ const expensesListEl = document.getElementById('recentExpenses');
 const noExpensesEl = document.getElementById('noExpenses');
 const errorEl = document.getElementById('pageError');
 
-async function load() {
+const GUEST_ACCESS_KEY = 'gastoFacilGuestAccess';
+let dashboardStarted = false;
+
+function setAuthMessage(message = '', type = '') {
+  if (!authMessage) return;
+  authMessage.textContent = message;
+  authMessage.classList.remove('auth-message--error', 'auth-message--success');
+  if (type) authMessage.classList.add(`auth-message--${type}`);
+}
+
+function setAuthLoading(isLoading, activeButton = null) {
+  [loginButton, registerButton, guestButton].forEach(button => {
+    if (button) button.disabled = isLoading;
+  });
+
+  if (loginButton) loginButton.textContent = activeButton === 'login' ? 'Ingresando…' : 'Iniciar sesión';
+  if (registerButton) registerButton.textContent = activeButton === 'register' ? 'Creando cuenta…' : 'Crear una cuenta';
+  if (guestButton) guestButton.textContent = activeButton === 'guest' ? 'Ingresando…' : 'Continuar como invitado';
+}
+
+function translateAuthError(error) {
+  const message = String(error?.message || 'No fue posible completar la operación.');
+  const lower = message.toLowerCase();
+
+  if (lower.includes('invalid login credentials')) return 'El correo o la contraseña no son correctos.';
+  if (lower.includes('email not confirmed')) return 'Primero confirma tu correo electrónico.';
+  if (lower.includes('password should be at least')) return 'La contraseña debe tener al menos 6 caracteres.';
+  if (lower.includes('user already registered')) return 'Ya existe una cuenta con ese correo.';
+  if (lower.includes('anonymous sign-ins are disabled')) return 'El acceso como invitado está desactivado en Supabase.';
+  return message;
+}
+
+function validateCredentials() {
+  const email = emailInput?.value.trim() || '';
+  const password = passwordInput?.value || '';
+
+  if (!email || !password) {
+    setAuthMessage('Escribe tu correo y contraseña.', 'error');
+    return null;
+  }
+
+  if (!emailInput.checkValidity()) {
+    setAuthMessage('Escribe un correo electrónico válido.', 'error');
+    return null;
+  }
+
+  if (password.length < 6) {
+    setAuthMessage('La contraseña debe tener al menos 6 caracteres.', 'error');
+    return null;
+  }
+
+  return { email, password };
+}
+
+function showAuthScreen() {
+  if (appShell) appShell.hidden = true;
+  if (authScreen) authScreen.hidden = false;
+  document.title = 'Iniciar sesión — Gasto Fácil';
+}
+
+async function showDashboard() {
+  if (authScreen) authScreen.hidden = true;
+  if (appShell) appShell.hidden = false;
+  document.title = 'Inicio — Gasto Fácil';
+
+  if (!dashboardStarted) {
+    dashboardStarted = true;
+    await loadDashboard();
+  }
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  const credentials = validateCredentials();
+  if (!credentials) return;
+
+  setAuthMessage();
+  setAuthLoading(true, 'login');
+
+  try {
+    const { error } = await supabase.auth.signInWithPassword(credentials);
+    if (error) throw error;
+    localStorage.removeItem(GUEST_ACCESS_KEY);
+    await showDashboard();
+  } catch (error) {
+    setAuthMessage(translateAuthError(error), 'error');
+  } finally {
+    setAuthLoading(false);
+  }
+}
+
+async function handleRegister() {
+  const credentials = validateCredentials();
+  if (!credentials) return;
+
+  setAuthMessage();
+  setAuthLoading(true, 'register');
+
+  try {
+    const { data, error } = await supabase.auth.signUp(credentials);
+    if (error) throw error;
+
+    localStorage.removeItem(GUEST_ACCESS_KEY);
+
+    if (data.session) {
+      await showDashboard();
+      return;
+    }
+
+    setAuthMessage('Cuenta creada. Revisa tu correo para confirmarla y después inicia sesión.', 'success');
+  } catch (error) {
+    setAuthMessage(translateAuthError(error), 'error');
+  } finally {
+    setAuthLoading(false);
+  }
+}
+
+async function handleGuest() {
+  setAuthMessage();
+  setAuthLoading(true, 'guest');
+
+  try {
+    const { error } = await supabase.auth.signInAnonymously();
+    if (error) throw error;
+    localStorage.setItem(GUEST_ACCESS_KEY, 'true');
+    await showDashboard();
+  } catch (error) {
+    setAuthMessage(translateAuthError(error), 'error');
+  } finally {
+    setAuthLoading(false);
+  }
+}
+
+async function bootstrapAuth() {
+  showAuthScreen();
+
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+
+    const session = data?.session;
+    if (!session) return;
+
+    const isAnonymous = Boolean(session.user?.is_anonymous);
+    const guestWasChosen = localStorage.getItem(GUEST_ACCESS_KEY) === 'true';
+
+    // Las sesiones anónimas antiguas se cierran para que el nuevo login sí aparezca.
+    if (isAnonymous && !guestWasChosen) {
+      await supabase.auth.signOut();
+      return;
+    }
+
+    await showDashboard();
+  } catch (error) {
+    setAuthMessage(translateAuthError(error), 'error');
+  }
+}
+
+async function loadDashboard() {
   setActiveNav('inicio');
   try {
     const userId = await initSupabaseSession();
@@ -24,7 +192,6 @@ async function load() {
 
     const [{ data: gastos }, { data: gastosDelMes }, { data: gastosMesAnterior }, { data: gastosHoy }, { data: countMes }, { data: categorias }, { data: allGastos }] = await Promise.all([
       supabase.from('gastos').select('*').eq('user_id', userId).order('fecha', { ascending: false }).limit(3),
-      // gastosDelMes, gastosMesAnterior, etc. are fetched below
       supabase.from('gastos').select('monto').eq('user_id', userId).gte('fecha', firstDay).lte('fecha', lastDay),
       supabase.from('gastos').select('monto').eq('user_id', userId).gte('fecha', firstDayPrev).lte('fecha', lastDayPrev),
       supabase.from('gastos').select('monto').eq('user_id', userId).gte('fecha', hoy),
@@ -47,9 +214,8 @@ async function load() {
       ? Object.keys(catMap).reduce((a, b) => catMap[a] > catMap[b] ? a : b, 'Comida')
       : 'Comida';
 
-    // Insert formatted amount into structured spans
     if (totalMesEl) {
-      const formatted = formatCurrency(totalMes, 2); // e.g. "4,500.00"
+      const formatted = formatCurrency(totalMes, 2);
       const parts = formatted.split('.');
       const whole = parts[0] || '0';
       const cents = parts[1] || '00';
@@ -62,7 +228,6 @@ async function load() {
     countMesEl.textContent = String(countMes?.length || 0);
     categoriaTopEl.textContent = categoriaTop;
 
-    // Render monthly totals (client-side)
     const monthlyTotalsEl = document.getElementById('monthlyTotals');
     if (monthlyTotalsEl) {
       const monthlyMap = {};
@@ -121,4 +286,7 @@ async function load() {
   }
 }
 
-window.addEventListener('DOMContentLoaded', load);
+authForm?.addEventListener('submit', handleLogin);
+registerButton?.addEventListener('click', handleRegister);
+guestButton?.addEventListener('click', handleGuest);
+window.addEventListener('DOMContentLoaded', bootstrapAuth);

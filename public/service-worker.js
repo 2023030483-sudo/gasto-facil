@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gasto-facil-cache-v2';
+const CACHE_NAME = 'gasto-facil-cache-v5-login-funcional';
 const ASSETS = [
   '/',
   '/index.html',
