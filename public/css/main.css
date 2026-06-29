@@ -1543,3 +1543,50 @@ input, select, textarea { font-family: var(--font); }
   .budget-summary-card { padding: 20px; }
   .budget-form__actions { flex-direction: column; }
 }
+
+
+/* ═══════════════════════════════════════
+   CORRECCIÓN: CAMBIO DE MES Y MENÚ INFERIOR EN ANDROID/PWA
+═══════════════════════════════════════ */
+:root {
+  --app-visible-height: 100dvh;
+  --viewport-bottom-offset: 0px;
+  --bottom-safe-offset: max(env(safe-area-inset-bottom), var(--viewport-bottom-offset));
+}
+
+body {
+  min-height: var(--app-visible-height);
+}
+
+.main {
+  height: var(--app-visible-height);
+  padding-bottom: calc(var(--nav-h) + 32px + var(--bottom-safe-offset));
+}
+
+.main--scan,
+.main--budget {
+  padding-bottom: calc(var(--nav-h) + 32px + var(--bottom-safe-offset));
+}
+
+.bottom-nav {
+  bottom: var(--bottom-safe-offset);
+  z-index: 2147483000;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  isolation: isolate;
+}
+
+.fab {
+  bottom: calc(var(--nav-h) + 16px + var(--bottom-safe-offset));
+}
+
+/* En modo instalado, evita que una barra del sistema tape el menú aunque
+   el navegador no reporte correctamente safe-area-inset-bottom. */
+@media (display-mode: standalone) and (pointer: coarse) {
+  .bottom-nav {
+    box-shadow:
+      0 -10px 25px -5px rgba(79,134,247,0.16),
+      0 8px 0 8px rgba(247,249,251,0.98);
+  }
+}

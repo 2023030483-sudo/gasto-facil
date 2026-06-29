@@ -5,6 +5,7 @@ export const BUDGET_THRESHOLDS = [50, 70, 80, 90, 95, 100];
 const BUDGET_PREFIX = 'gastoFacilMonthlyBudget';
 const TRACKING_PREFIX = 'gastoFacilBudgetTracking';
 const NOTIFICATIONS_PREFIX = 'gastoFacilBudgetNotifications';
+const ACTIVE_MONTH_PREFIX = 'gastoFacilBudgetActiveMonth';
 const MAX_NOTIFICATIONS = 30;
 
 function normalizedUserId(userId) {
@@ -41,8 +42,8 @@ export function getCurrentMonthRange(date = new Date()) {
   return { firstDay, lastDay, monthKey: getMonthKey(date) };
 }
 
-// El límite se conserva de un mes a otro. Lo que se reinicia automáticamente
-// es la suma de gastos, porque siempre se consulta únicamente el mes actual.
+// El monto se conserva de un mes a otro. Lo que se reinicia es:
+// 1) la suma de gastos utilizada, 2) los niveles alcanzados y 3) los avisos visibles.
 function budgetKey(userId) {
   return `${BUDGET_PREFIX}:${normalizedUserId(userId)}`;
 }
@@ -55,6 +56,50 @@ function notificationsKey(userId) {
   return `${NOTIFICATIONS_PREFIX}:${normalizedUserId(userId)}`;
 }
 
+function activeMonthKey(userId) {
+  return `${ACTIVE_MONTH_PREFIX}:${normalizedUserId(userId)}`;
+}
+
+function getAllBudgetNotifications(userId) {
+  const notifications = readJson(notificationsKey(userId), []);
+  return Array.isArray(notifications)
+    ? notifications.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+    : [];
+}
+
+function saveNotifications(userId, notifications) {
+  writeJson(notificationsKey(userId), notifications.slice(0, MAX_NOTIFICATIONS));
+}
+
+/**
+ * Detecta el cambio de mes. El límite mensual permanece, pero se eliminan
+ * los avisos del mes anterior y se inicia un seguimiento limpio para el mes actual.
+ */
+export function ensureCurrentBudgetMonth(userId, date = new Date()) {
+  const monthKey = getMonthKey(date);
+  const key = activeMonthKey(userId);
+  const previousMonthKey = localStorage.getItem(key);
+
+  if (previousMonthKey !== monthKey) {
+    localStorage.setItem(key, monthKey);
+
+    // No mostrar en junio un aviso de exceso generado en mayo.
+    const currentMonthNotifications = getAllBudgetNotifications(userId)
+      .filter(item => item.monthKey === monthKey);
+    saveNotifications(userId, currentMonthNotifications);
+
+    // El seguimiento es independiente por mes. Se limpia explícitamente para
+    // que vuelvan a enviarse los avisos del 50%, 70%, 80%, 90%, 95% y 100%.
+    resetBudgetTracking(userId, monthKey);
+  }
+
+  return {
+    monthKey,
+    previousMonthKey,
+    changed: Boolean(previousMonthKey && previousMonthKey !== monthKey)
+  };
+}
+
 export function getMonthlyBudget(userId) {
   const raw = localStorage.getItem(budgetKey(userId));
   if (!raw) return null;
@@ -63,7 +108,7 @@ export function getMonthlyBudget(userId) {
   const directValue = Number(raw);
   if (Number.isFinite(directValue) && directValue > 0) return directValue;
 
-  // Compatibilidad por si una versión futura/anterior guardó un objeto.
+  // Compatibilidad por si otra versión guardó un objeto.
   const record = readJson(budgetKey(userId), null);
   const objectValue = Number(record?.amount);
   return Number.isFinite(objectValue) && objectValue > 0 ? objectValue : null;
@@ -76,28 +121,25 @@ export function saveMonthlyBudget(userId, amount) {
   }
 
   localStorage.setItem(budgetKey(userId), String(value));
+  ensureCurrentBudgetMonth(userId);
   return value;
 }
 
 export function deleteMonthlyBudget(userId) {
   localStorage.removeItem(budgetKey(userId));
+  localStorage.removeItem(activeMonthKey(userId));
   resetBudgetTracking(userId);
-  removeBudgetNotificationsForMonth(userId);
+  clearBudgetNotifications(userId);
 }
 
-export function getBudgetNotifications(userId) {
-  const notifications = readJson(notificationsKey(userId), []);
-  return Array.isArray(notifications)
-    ? notifications.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
-    : [];
-}
-
-function saveNotifications(userId, notifications) {
-  writeJson(notificationsKey(userId), notifications.slice(0, MAX_NOTIFICATIONS));
+/** Devuelve únicamente los avisos del mes solicitado (por defecto, el actual). */
+export function getBudgetNotifications(userId, monthKey = getMonthKey()) {
+  return getAllBudgetNotifications(userId)
+    .filter(item => item.monthKey === monthKey);
 }
 
 function upsertNotification(userId, notification) {
-  const notifications = getBudgetNotifications(userId);
+  const notifications = getAllBudgetNotifications(userId);
   const existingIndex = notifications.findIndex(item => item.id === notification.id);
 
   if (existingIndex >= 0) {
@@ -124,7 +166,7 @@ export function clearBudgetNotifications(userId) {
 }
 
 export function removeBudgetNotificationsForMonth(userId, monthKey = getMonthKey()) {
-  const filtered = getBudgetNotifications(userId).filter(item => item.monthKey !== monthKey);
+  const filtered = getAllBudgetNotifications(userId).filter(item => item.monthKey !== monthKey);
   saveNotifications(userId, filtered);
 }
 
@@ -171,8 +213,6 @@ export async function showBudgetDeviceNotification(title, body, tag = getMonthKe
   };
 
   try {
-    // En Android/Chrome las notificaciones deben mostrarse desde el Service Worker.
-    // El constructor new Notification() no funciona de forma confiable en móviles.
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.ready;
       if (registration?.showNotification) {
@@ -181,7 +221,6 @@ export async function showBudgetDeviceNotification(title, body, tag = getMonthKe
       }
     }
 
-    // Respaldo para navegadores de escritorio.
     new Notification(title, options);
     return true;
   } catch (error) {
@@ -210,11 +249,11 @@ export async function requestDeviceNotificationPermission() {
 }
 
 export function evaluateBudgetAlerts(userId, spentAmount, { notifyDevice = true, date = new Date() } = {}) {
+  const { monthKey } = ensureCurrentBudgetMonth(userId, date);
   const budget = getMonthlyBudget(userId);
   const spent = Math.max(0, Number(spentAmount) || 0);
   if (!budget) return [];
 
-  const { monthKey } = getCurrentMonthRange(date);
   const percent = (spent / budget) * 100;
   const state = getTrackingState(userId, monthKey);
   const created = [];
@@ -254,7 +293,8 @@ export function evaluateBudgetAlerts(userId, spentAmount, { notifyDevice = true,
         message
       };
       const overspendChanged = overspend > state.lastOverspend + 0.009;
-      const notificationExists = getBudgetNotifications(userId).some(item => item.id === notification.id);
+      const notificationExists = getBudgetNotifications(userId, monthKey)
+        .some(item => item.id === notification.id);
 
       if (!notificationExists || !state.reached.includes(100) || overspendChanged) {
         upsertNotification(userId, notification);
@@ -310,7 +350,16 @@ export async function getCurrentMonthSpent(supabase, userId) {
 
 export async function refreshBudgetAlerts(supabase, userId, options = {}) {
   const date = options.date || new Date();
+  const { monthKey, changed, previousMonthKey } = ensureCurrentBudgetMonth(userId, date);
   const spent = await getMonthSpent(supabase, userId, date);
   const notifications = evaluateBudgetAlerts(userId, spent, { ...options, date });
-  return { spent, notifications, budget: getMonthlyBudget(userId), monthKey: getMonthKey(date) };
+
+  return {
+    spent,
+    notifications,
+    budget: getMonthlyBudget(userId),
+    monthKey,
+    monthChanged: changed,
+    previousMonthKey
+  };
 }

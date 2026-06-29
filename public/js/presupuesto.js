@@ -43,6 +43,7 @@ const elements = {
 let userId = null;
 let currentSpent = 0;
 let editing = false;
+let refreshInProgress = false;
 
 function setVisible(element, visible) {
   if (!element) return;
@@ -199,10 +200,17 @@ function updateNotificationPermissionButton() {
 }
 
 async function refreshData({ notifyDevice = true } = {}) {
-  const result = await refreshBudgetAlerts(supabase, userId, { notifyDevice, date: new Date() });
-  currentSpent = result.spent;
-  renderSummary();
-  renderNotifications();
+  if (!userId || refreshInProgress) return;
+
+  refreshInProgress = true;
+  try {
+    const result = await refreshBudgetAlerts(supabase, userId, { notifyDevice, date: new Date() });
+    currentSpent = result.spent;
+    renderSummary();
+    renderNotifications();
+  } finally {
+    refreshInProgress = false;
+  }
 }
 
 async function handleSave(event) {
@@ -307,3 +315,21 @@ async function load() {
 }
 
 window.addEventListener('DOMContentLoaded', load);
+
+// Si la aplicación permanece abierta durante el cambio de mes o vuelve desde
+// segundo plano, vuelve a calcular únicamente los gastos del mes actual.
+window.addEventListener('pageshow', () => {
+  if (userId && !editing) void refreshData({ notifyDevice: true });
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && userId && !editing) {
+    void refreshData({ notifyDevice: true });
+  }
+});
+
+window.setInterval(() => {
+  if (document.visibilityState === 'visible' && userId && !editing) {
+    void refreshData({ notifyDevice: true });
+  }
+}, 60 * 1000);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gasto-facil-cache-v13-notificaciones-menu';
+const CACHE_NAME = 'gasto-facil-cache-v14-mes-menu-visible';
 
 const ASSETS = [
   '/',
