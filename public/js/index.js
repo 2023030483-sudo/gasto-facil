@@ -24,6 +24,17 @@ const errorEl = document.getElementById('pageError');
 const GUEST_ACCESS_KEY = 'gastoFacilGuestAccess';
 let dashboardStarted = false;
 
+
+async function updateBudgetAlertsSafely(userId, totalMes) {
+  try {
+    const { evaluateBudgetAlerts } = await import('./presupuesto-utils.js?v=monthly-budget-fix-12');
+    evaluateBudgetAlerts(userId, totalMes, { notifyDevice: true });
+  } catch (error) {
+    // El presupuesto es complementario: nunca debe bloquear el login ni el inicio.
+    console.warn('No se pudieron actualizar los avisos del presupuesto:', error);
+  }
+}
+
 const buttonDefaults = new Map(
   [loginButton, registerButton, guestButton]
     .filter(Boolean)
@@ -388,6 +399,7 @@ async function loadDashboard() {
     const totalMes = gastosDelMes ? gastosDelMes.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0) : 0;
     const totalMesAnterior = gastosMesAnterior ? gastosMesAnterior.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0) : 0;
     const totalHoy = gastosHoy ? gastosHoy.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0) : 0;
+    await updateBudgetAlertsSafely(userId, totalMes);
     const porcentajeCambio = totalMesAnterior > 0 ? (((totalMes - totalMesAnterior) / totalMesAnterior) * 100).toFixed(0) : 0;
 
     const catMap = {};

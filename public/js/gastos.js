@@ -1,6 +1,16 @@
 import { supabase, initSupabaseSession } from './supabase.js';
 import { formatCurrency, formatDate, setActiveNav } from './common.js';
 
+async function refreshBudgetAlertsSafely(userId, options = {}) {
+  try {
+    const { refreshBudgetAlerts } = await import('./presupuesto-utils.js?v=monthly-budget-fix-12');
+    await refreshBudgetAlerts(supabase, userId, options);
+  } catch (error) {
+    console.warn('No se pudieron actualizar los avisos del presupuesto:', error);
+  }
+}
+
+
 const listContainer = document.getElementById('expensesList');
 const emptyState = document.getElementById('emptyState');
 const errorEl = document.getElementById('pageError');
@@ -81,7 +91,9 @@ function attachDeleteListeners() {
       if (!id || !confirm('¿Eliminar este gasto?')) return;
       try {
         const userId = await initSupabaseSession();
-        await supabase.from('gastos').delete().eq('id', id).eq('user_id', userId);
+        const { error } = await supabase.from('gastos').delete().eq('id', id).eq('user_id', userId);
+        if (error) throw error;
+        await refreshBudgetAlertsSafely(userId, { notifyDevice: false });
         window.location.reload();
       } catch (err) {
         alert('No se pudo eliminar el gasto. Intenta de nuevo.');

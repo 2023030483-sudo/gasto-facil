@@ -3,7 +3,11 @@
   functions = "netlify/functions"
   command = "npm run build"
 
+# Las carpetas dentro de public ya tienen su propio index.html.
+# No se usa una redirección global a /index.html porque esa regla sustituía
+# páginas como /gastos/, /resumen/ y /presupuesto/ por la pantalla de inicio.
+
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/api/analizar-ticket"
+  to = "/.netlify/functions/analizar-ticket"
   status = 200

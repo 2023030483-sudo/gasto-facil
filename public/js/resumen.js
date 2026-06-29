@@ -1,6 +1,16 @@
 import { supabase, initSupabaseSession } from './supabase.js';
 import { formatCurrency, setActiveNav } from './common.js';
 
+async function evaluateBudgetAlertsSafely(userId, totalMes) {
+  try {
+    const { evaluateBudgetAlerts } = await import('./presupuesto-utils.js?v=monthly-budget-fix-12');
+    evaluateBudgetAlerts(userId, totalMes, { notifyDevice: true });
+  } catch (error) {
+    console.warn('No se pudieron actualizar los avisos del presupuesto:', error);
+  }
+}
+
+
 const totalMesEl = document.getElementById('totalMes');
 const porcentajeEl = document.getElementById('porcentajeCambio');
 const categoriaTopNameEl = document.getElementById('categoriaTopName');
@@ -45,6 +55,7 @@ async function load() {
 
     const totalMes = (gastosMes || []).reduce((sum, g) => sum + parseFloat(g.monto || 0), 0);
     const totalPrev = (gastosPrev || []).reduce((sum, g) => sum + parseFloat(g.monto || 0), 0);
+    await evaluateBudgetAlertsSafely(userId, totalMes);
     const porcentajeCambio = totalPrev > 0 ? (((totalMes - totalPrev) / totalPrev) * 100).toFixed(0) : 0;
 
     const catMap = {};

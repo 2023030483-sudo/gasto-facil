@@ -1,6 +1,16 @@
 import { supabase, initSupabaseSession } from './supabase.js';
 import { setActiveNav, getTicketData, clearTicketData } from './common.js';
 
+async function refreshBudgetAlertsSafely(userId, options = {}) {
+  try {
+    const { refreshBudgetAlerts } = await import('./presupuesto-utils.js?v=monthly-budget-fix-12');
+    await refreshBudgetAlerts(supabase, userId, options);
+  } catch (error) {
+    console.warn('No se pudieron actualizar los avisos del presupuesto:', error);
+  }
+}
+
+
 const form = document.getElementById('confirmForm');
 const messageEl = document.getElementById('confirmMessage');
 
@@ -47,6 +57,7 @@ async function handleSubmit(event) {
     }]);
 
     if (error) throw error;
+    await refreshBudgetAlertsSafely(userId);
     clearTicketData();
     window.location.href = '/gastos/';
   } catch (err) {
