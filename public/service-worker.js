@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gasto-facil-cache-v12-auth-presupuesto';
+const CACHE_NAME = 'gasto-facil-cache-v13-notificaciones-menu';
 
 const ASSETS = [
   '/',
@@ -16,6 +16,7 @@ const ASSETS = [
   '/js/resumen.js',
   '/js/presupuesto.js',
   '/js/presupuesto-utils.js',
+  '/js/presupuesto-alertas.js',
   '/js/supabase.js',
   '/404.html',
   '/escanear/',
@@ -120,3 +121,29 @@ async function cacheFirstWithUpdate(request) {
 
   return cachedResponse || networkResponsePromise;
 }
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const targetPath = event.notification.data?.url || '/presupuesto/';
+  const targetUrl = new URL(targetPath, self.location.origin).href;
+
+  event.waitUntil((async () => {
+    const windowClients = await self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    });
+
+    for (const client of windowClients) {
+      if ('focus' in client) {
+        if ('navigate' in client && client.url !== targetUrl) {
+          await client.navigate(targetUrl);
+        }
+        return client.focus();
+      }
+    }
+
+    if (self.clients.openWindow) {
+      return self.clients.openWindow(targetUrl);
+    }
+  })());
+});

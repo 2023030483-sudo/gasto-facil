@@ -157,25 +157,56 @@ function overspendMessage(budget, spent) {
   return `Has superado tu presupuesto mensual por $${formatCurrency(overspend)}. Tu límite era de $${formatCurrency(budget)} y llevas gastados $${formatCurrency(spent)}.`;
 }
 
-function showDeviceNotification(title, body, tag = getMonthKey()) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+export async function showBudgetDeviceNotification(title, body, tag = getMonthKey()) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+
+  const options = {
+    body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: `gasto-facil-presupuesto-${tag}`,
+    renotify: true,
+    vibrate: [180, 80, 180],
+    data: { url: '/presupuesto/' }
+  };
 
   try {
-    new Notification(title, {
-      body,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      tag: `gasto-facil-presupuesto-${tag}`
-    });
-  } catch {
-    // Los avisos internos siguen funcionando aunque el sistema bloquee notificaciones.
+    // En Android/Chrome las notificaciones deben mostrarse desde el Service Worker.
+    // El constructor new Notification() no funciona de forma confiable en móviles.
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      if (registration?.showNotification) {
+        await registration.showNotification(title, options);
+        return true;
+      }
+    }
+
+    // Respaldo para navegadores de escritorio.
+    new Notification(title, options);
+    return true;
+  } catch (error) {
+    console.warn('No se pudo mostrar la notificación del presupuesto:', error?.message || error);
+    return false;
   }
 }
 
 export async function requestDeviceNotificationPermission() {
   if (!('Notification' in window)) return 'unsupported';
-  if (Notification.permission === 'granted') return 'granted';
-  return Notification.requestPermission();
+
+  let permission = Notification.permission;
+  if (permission !== 'granted') {
+    permission = await Notification.requestPermission();
+  }
+
+  if (permission === 'granted' && 'serviceWorker' in navigator) {
+    let registration = await navigator.serviceWorker.getRegistration('/');
+    if (!registration) {
+      registration = await navigator.serviceWorker.register('/service-worker.js');
+    }
+    await navigator.serviceWorker.ready;
+  }
+
+  return permission;
 }
 
 export function evaluateBudgetAlerts(userId, spentAmount, { notifyDevice = true, date = new Date() } = {}) {
@@ -205,7 +236,7 @@ export function evaluateBudgetAlerts(userId, spentAmount, { notifyDevice = true,
       upsertNotification(userId, notification);
       state.reached.push(threshold);
       created.push(notification);
-      if (notifyDevice) showDeviceNotification(notification.title, message, notification.id);
+      if (notifyDevice) void showBudgetDeviceNotification(notification.title, message, notification.id);
     }
   }
 
@@ -231,7 +262,7 @@ export function evaluateBudgetAlerts(userId, spentAmount, { notifyDevice = true,
 
       if (!state.reached.includes(100) || overspendChanged) {
         created.push(notification);
-        if (notifyDevice) showDeviceNotification(notification.title, message, notification.id);
+        if (notifyDevice) void showBudgetDeviceNotification(notification.title, message, notification.id);
       }
 
       state.lastOverspend = overspend;
@@ -247,7 +278,7 @@ export function evaluateBudgetAlerts(userId, spentAmount, { notifyDevice = true,
       };
       upsertNotification(userId, notification);
       created.push(notification);
-      if (notifyDevice) showDeviceNotification(notification.title, message, notification.id);
+      if (notifyDevice) void showBudgetDeviceNotification(notification.title, message, notification.id);
     }
 
     if (!state.reached.includes(100)) state.reached.push(100);

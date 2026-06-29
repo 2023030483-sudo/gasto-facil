@@ -42,9 +42,11 @@ body {
   font-family: var(--font);
   background: var(--bg);
   color: var(--gray-1);
+  width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  min-height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   overflow: hidden;
   touch-action: pan-y;
@@ -87,14 +89,23 @@ input, select, textarea { font-family: var(--font); }
 
 /* ── MAIN ── */
 .main {
-  padding: calc(var(--top-h) + 24px) 20px calc(var(--nav-h) + 32px);
+  padding: calc(var(--top-h) + 24px) 20px calc(var(--nav-h) + 32px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-height: calc(100vh - var(--top-h) - var(--nav-h));
+  height: 100vh;
+  height: 100dvh;
+  max-height: none;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+/* Evita que las tarjetas se compriman cuando la página tiene mucho contenido.
+   Esto mantiene visibles el saldo y los botones Modificar/Eliminar aunque haya avisos. */
+.main > * {
+  flex-shrink: 0;
 }
 .main--form { padding-top: calc(var(--top-h) + 16px); }
 .main--scan { padding: calc(var(--top-h) + 16px) 20px calc(var(--nav-h) + 24px); gap: 20px; }
@@ -291,7 +302,7 @@ input, select, textarea { font-family: var(--font); }
 .fab {
   position: fixed;
   right: 24px;
-  bottom: calc(var(--nav-h) + 16px);
+  bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom));
   width: 56px; height: 56px;
   background: var(--blue);
   border-radius: var(--radius-pill);
@@ -305,17 +316,24 @@ input, select, textarea { font-family: var(--font); }
 /* ── BOTTOM NAV ── */
 .bottom-nav {
   position: fixed;
-  bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 480px;
-  height: var(--nav-h);
-  display: flex; align-items: center;
-  padding: 8px 18px 16px;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 18px calc(16px + env(safe-area-inset-bottom));
   gap: 4px;
-  background: rgba(247,249,251,0.85);
+  background: rgba(247,249,251,0.96);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border-radius: 32px 32px 0 0;
-  box-shadow: 0 -10px 25px -5px rgba(79,134,247,0.08);
-  z-index: 100;
+  box-shadow: 0 -10px 25px -5px rgba(79,134,247,0.12);
+  z-index: 1000;
+  transform: translate3d(-50%, 0, 0);
+  will-change: transform;
 }
 .nav-link {
   flex: 1;
@@ -1071,7 +1089,15 @@ input, select, textarea { font-family: var(--font); }
 
 .main--budget {
   gap: 20px;
-  padding-bottom: calc(var(--nav-h) + 28px);
+  padding-bottom: calc(var(--nav-h) + 32px + env(safe-area-inset-bottom));
+}
+
+.main--budget > .page-header,
+.main--budget > .error-message,
+.main--budget > .budget-setup-card,
+.main--budget > .budget-summary-card,
+.main--budget > .budget-notifications-section {
+  flex: 0 0 auto;
 }
 
 .budget-setup-card,
@@ -1517,4 +1543,3 @@ input, select, textarea { font-family: var(--font); }
   .budget-summary-card { padding: 20px; }
   .budget-form__actions { flex-direction: column; }
 }
-

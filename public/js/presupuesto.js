@@ -10,6 +10,7 @@ import {
   removeBudgetNotificationsForMonth,
   requestDeviceNotificationPermission,
   resetBudgetTracking,
+  showBudgetDeviceNotification,
   saveMonthlyBudget
 } from './presupuesto-utils.js';
 
@@ -254,6 +255,22 @@ async function handleEnableNotifications() {
 
   if (permission === 'granted') {
     showPageError();
+
+    // Permite comprobar el permiso con el mismo texto que aparece dentro de la app.
+    const latestNotification = getBudgetNotifications(userId)[0];
+    if (latestNotification) {
+      await showBudgetDeviceNotification(
+        latestNotification.title,
+        latestNotification.message,
+        `manual-${latestNotification.id}`
+      );
+    } else {
+      await showBudgetDeviceNotification(
+        'Avisos de presupuesto activados',
+        'Recibirás una notificación cuando alcances los límites de tu presupuesto mensual.',
+        'permission-enabled'
+      );
+    }
   } else if (permission === 'denied') {
     showPageError('El navegador bloqueó los avisos. Puedes habilitarlos desde los permisos del sitio.');
   }
